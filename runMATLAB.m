@@ -9,7 +9,7 @@ addpath('matlab')
 func_f = 'arwhead';
 % rng(2);
 % y = rand(100,1);
-y = 0.5*ones(100,1);
+y = 0.5*ones(50,1);
 
 % warning('off', 'MATLAB:nearlySingularMatrix')
 warning('on','all')
@@ -29,3 +29,5 @@ param = [];
 fprintf('x = \n')
 fprintf('%12.9f  %12.9f  %12.9f  %12.9f\n', x)
 fprintf('\n')
+
+rmpath('matlab')
