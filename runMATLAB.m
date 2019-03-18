@@ -1,11 +1,10 @@
 clear; clc; 
 % Runs DFO for solving noisy problems
 
+addpath('matlab')
+
 % Define function handle ((application, user provided))
 % Initiate starting point
-
-% func_f = 'srosenbr';
-% y = [-1.2 1]';
 
 func_f = 'arwhead';
 % rng(2);
