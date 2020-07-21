@@ -20,9 +20,9 @@ def trust_sub(x, model, par):
         s   = - par.tr_delta / np.sqrt(sum(g**2)) * g
         val = sum(g * s)
     elif par.alg_TRS is 'exact':
-        s, val = trust_sub_CG(H, g, par.tr_delta)
-    elif par.alg_TRS is 'CG':
         s, val = trust_sub_exact(H, g, par.tr_delta)
+    elif par.alg_TRS is 'CG':
+        s, val = trust_sub_CG(H, g, par.tr_delta)
     else: 
         raise('Something went wrong!')
 
