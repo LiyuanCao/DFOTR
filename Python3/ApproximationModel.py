@@ -83,11 +83,11 @@ class ApproximationModel:
 
         return self.center + s, -val
 
-    def update_delta(self, rho, options):
+    def update_delta(self, rho, stepSize2delta, options):
         # Updating iterate and trust-region radius.
 
         # When the approximation is very good, increase TR radius
-        if rho >= options['tr_toexpand']:
+        if rho >= options['tr_toexpand'] and stepSize2delta >= 0.99:
             self.delta *= options['tr_expand']
         elif (0 <= rho < options['tr_toaccept']) or rho < options['tr_toshrink']:
             # When the approximation is bad, but not complete bullshit, 

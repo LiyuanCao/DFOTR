@@ -18,19 +18,20 @@ from funcs_def import arwhead, rosen
 
 
 # choose function
-# func = arwhead
-func = rosen
+func = arwhead
+# func = rosen
 
 # starting point
-# x0 = np.ones(200) * 1
-x0 = np.repeat(np.array([[-1.2, 1]]), 2, axis=0).flatten()
+x0 = np.ones(20) * 0.5
+# x0 = np.repeat(np.array([[-1.2, 1]]), 2, axis=0).flatten()
 
 # overwrite default settings
 customOptions = {'alg_model': 'quadratic',
                 'alg_TRsub': 'exact',
-                'stop_iter': 10000,
                 'tr_delta': 0.5, 
                 'sample_toremove': 30,
+                'stop_iter': 10000,
+                'stop_predict': 0.,
                 'verbosity': 2, 
                 }
 

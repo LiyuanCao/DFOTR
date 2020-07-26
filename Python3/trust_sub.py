@@ -297,7 +297,7 @@ def trust_sub_exact(H, g, delta):
 
         if key > 2 and nrms < s_factor * delta:
             beta = np.sqrt(delta**2 - nrms**2)
-            s = s + reduce(np.dot, [beta, sig, V[:, jmin]]).reshape(n, 1)
+            s = s + np.dot(beta, np.dot(sig, V[:, jmin])).reshape(n, 1)
 
         if key > 2 and nrms > b_factor * delta:
             b, c, count = rfzero(laminit, itbnd, eigval, alpha, delta, tol)

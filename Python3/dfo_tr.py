@@ -37,8 +37,8 @@ class dfo_tr:
             # stopping crieria parameters
             'stop_iter': 2000,  # maximum number of iterations
             'stop_nfeval': 2000, # maximum number of function evaluations
-            'stop_delta': 1e-5, # throshold for trust region radius
-            'stop_predict': 1e-7,    # threshold for predicted decrease
+            'stop_delta': 1e-6, # throshold for trust region radius
+            'stop_predict': 1e-8,    # threshold for predicted decrease
             # verbosity
             'verbosity': 2
         }
@@ -112,6 +112,10 @@ class dfo_tr:
             # value and the reduction predicted the approximation model. 
             rho = (self.model.c - self.samp.fY[-1]) / self.info['predicted_decrease']
 
+            # Calculate the ratio between the step size and the trust region radius.
+            stepSize = np.linalg.norm(self.samp.Y[-1] - self.model.center)
+            stepSize2delta = stepSize / self.model.delta
+
             # Decide whether to move the iterate. 
             if rho >= self.options['tr_toaccept']:
                 self._success = 1
@@ -121,7 +125,7 @@ class dfo_tr:
                 self._success = 0
 
             # Update the trust region radius. 
-            self.model.update_delta(rho, self.options)
+            self.model.update_delta(rho, stepSize2delta, self.options)
 
             # Remove points that are too far away from the current TR. 
             self.samp.auto_delete(self.model, self.options)
