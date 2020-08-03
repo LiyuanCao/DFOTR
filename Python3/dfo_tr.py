@@ -12,7 +12,7 @@ class dfo_tr:
         of Dr. Katya Scheinberg. 
     """
 
-    def __init__(self, x0, customOptions=None):
+    def __init__(self, x0, options=None):
         # input dimension
         self.n = len(x0)
 
@@ -44,11 +44,11 @@ class dfo_tr:
         }
 
         # Override default options with custom ones.
-        if customOptions:
-            for key in customOptions:
+        if options:
+            for key in options:
                 if key not in self.options.keys():
                     raise ValueError("{!r} is not a valid option name. \n".format(key))
-                self.options[key] = customOptions[key]
+                self.options[key] = options[key]
 
         # information/logger
         self.info = {}
@@ -188,8 +188,8 @@ class dfo_tr:
 
 
     @classmethod
-    def optimize(cls, obj, x0, customOptions=None):
-        optimizer = dfo_tr(x0, customOptions)
+    def optimize(cls, obj, x0, options=None):
+        optimizer = dfo_tr(x0, options)
 
         while True:
             x = optimizer.ask()

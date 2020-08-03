@@ -54,7 +54,7 @@ class ApproximationModel:
 
         elif (self.type['model'] is 'quadratic') and (m == n + 1):
             # fit an well-determined linear model 
-            self.H = 0
+            self.H[:] = 0
 
             # solve the linear system
             A = np.empty((1+n, 1+n))
