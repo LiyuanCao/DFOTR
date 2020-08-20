@@ -62,20 +62,20 @@ class Sample:
                 l = np.abs(l) * self.distance(model.center)[:-1]**3
             return l.argmax()
 
-        # # If the sample set is still within the capacity, but the new point
-        # # will render it not poised, pick a point to remove such that 
-        # # the new sample set is as well poised as possible in the subspace. 
-        # Phi = np.array([phi(y, model.type['model']) for y in self.Ycentered(model.center)])
-        # if np.linalg.matrix_rank(Phi) <= self.m:
-        #     Q, R = np.linalg.qr(Phi[:-1].T)
-        #     Phi_subspace = R.T
-        #     phi_xnew = np.dot(Q.T, Phi[-1])
-        #     l = np.linalg.solve(Phi_subspace.T, phi_xnew)
-        #     if model.type['model'] is 'linear':
-        #         l = np.abs(l) * self.distance(model.center)[:-1]**2
-        #     elif model.type['model'] is 'quadratic':
-        #         l = np.abs(l) * self.distance(model.center)[:-1]**3
-        #     return l.argmax()
+        # If the sample set is still within the capacity, but the new point
+        # will render it not poised, pick a point to remove such that 
+        # the new sample set is as well poised as possible in the subspace. 
+        Phi = np.array([phi(y, model.type['model']) for y in self.Ycentered(model.center)])
+        if np.linalg.matrix_rank(Phi) <= self.m:
+            Q, R = np.linalg.qr(Phi[:-1].T)
+            Phi_subspace = R.T
+            phi_xnew = np.dot(Q.T, Phi[-1])
+            l = np.linalg.solve(Phi_subspace.T, phi_xnew)
+            if model.type['model'] is 'linear':
+                l = np.abs(l) * self.distance(model.center)[:-1]**2
+            elif model.type['model'] is 'quadratic':
+                l = np.abs(l) * self.distance(model.center)[:-1]**3
+            return l.argmax()
 
     def rmpoint(self, idx):
         self.Y = np.delete(self.Y, idx, axis=0)
