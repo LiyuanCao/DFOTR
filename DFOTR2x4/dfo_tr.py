@@ -4,6 +4,7 @@ import sys
 import time
 from .Sample import Sample
 from .ApproximationModel import ApproximationModel
+from .util import phi, qr, alpha2cgH
 
 class dfo_tr:
     """ This is a derivative free trust region optimization algorithm. 
@@ -177,7 +178,7 @@ class dfo_tr:
                 
                 # If the sample set is poised, then reduce TR radius. 
                 if self.samp.m == self.options['sample_max']:
-                    self.model.delta *= self.options['tr_shrink'] \
+                    self.model.delta *= self.options['tr_shrink'] 
 
             # print iteration report
             if self.options['verbosity'] >= 2:
