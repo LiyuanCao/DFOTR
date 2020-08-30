@@ -98,7 +98,6 @@ class dfo_tr:
             firstnan = np.isnan(self.samp.fYeval[idx]).argmax()
             self.samp.fYeval[idx, firstnan] = fX[i]
             self.info['nfeval'] += 1
-
         # If there is still a point that is not evaluated, we go to evaluate it. 
         if np.any(np.isnan(self.samp.fY)):
             return
@@ -208,19 +207,24 @@ class dfo_tr:
 
         # x1
         if (self.info['predicted_decrease'] > 0) and (self.samp.distance(self.x1).min() >= 0.1 * self.model.delta):
-            # If the new point is sufficiently far away from other points, 
+            # If the new point is predicted to provide a decease in the functino value
+            # and is sufficiently far away from other points, 
             # add it to the sample set. 
             todelete = self.samp.addpoint(self.x1, copy.copy(self.model), self.options)
             # Keep the sample size under the capacity. 
             if todelete is not None:
                 self.samp.rmpoint(todelete)
         else:
-            # If the predicted decrease is not positive, increase the search radius
+            # If the predicted decrease is not positive, adjust the search radius
             # and change the new point to a poisedness improvement one. 
             # If the new point is too close to one of the sample points,
             # change it to a poisedness improvement point. 
-            if (self.info['predicted_decrease'] <= 0) and (self.samp.m == self.options['sample_max']):
+            if np.all(self.samp.fY == self.model.c):
+                # flat model -> increase search range
                 self.model.delta *= 2
+            elif (self.info['predicted_decrease'] <= 0) and (self.samp.m == self.options['sample_max']):
+                # current TR center is the minimizer of the model -> reduce TR radius
+                self.model.delta /= 2
             
             self.x1, todelete = self.samp.poise(copy.copy(self.model))
             if todelete is not None:
@@ -228,8 +232,6 @@ class dfo_tr:
             self.samp.addpoint(self.x1, copy.copy(self.model), self.options)
 
             self.info['predicted_decrease'] = np.nan
-
-        
 
         # Add a poisedness improvement point and delete an old one if necessary. 
         self.x2, todelete = self.samp.poise(copy.copy(self.model),\

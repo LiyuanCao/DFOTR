@@ -5,14 +5,8 @@ User is required to import a blackbox function, and provide a
 starting point. User can overwrite the default algorithm and/or the 
 default parameters used in the solver. 
 """
-import os, sys, inspect
-cmd_subfolder = os.path.realpath(os.path.abspath(os.path.join(os.path.split(inspect.getfile( inspect.currentframe() ))[0],"Python3")))
-if cmd_subfolder not in sys.path:
-    sys.path.insert(0, cmd_subfolder)
-
 import numpy as np
 # import solver
-# from Python3.dfo_tr import dfo_tr
 from DFOTR2x4.dfo_tr import dfo_tr
 # import blackbox functions
 from funcs_def import arwhead, rosen
@@ -33,7 +27,7 @@ func = simple_quartic
 # func = rosen
 
 # starting point
-n = 6
+n = 2
 x0 = np.ones(n) * 5.0
 # x0 = np.repeat(np.array([[-1.2, 1]]), 2, axis=0).flatten()
 
@@ -53,7 +47,8 @@ customOptions = {'alg_model': 'quadratic',
                 'stop_predict': 0.,
                 'verbosity': 2
                 }
-for i in range(18,1000):
+for i in [25]: #range(1000):
+    print(f'i = {i}')
     customOptions['rng_seed'] = i
     nAsk = 8 // customOptions['alg_feval']
 
@@ -87,80 +82,79 @@ for i in range(18,1000):
 
 ########################################################################
 ########################################################################
-# ## Make plots. 
-# import matplotlib.pyplot as plt 
-# import matplotlib.animation as animation
+## Make plots. 
+import matplotlib.pyplot as plt 
+import matplotlib.animation as animation
 
-# # plot the results 
-# plt.rcParams['figure.figsize'] = [10,7]
-# plt.scatter(np.repeat(range(len(hist_phix)), customOptions['alg_feval']),\
-#     hist_fx.flatten(), c='g', alpha=0.1, label='function evalues')
-# plt.scatter(range(len(hist_phix)), hist_phix, marker='o', c='k', alpha=1.0, label='true values')
-# # plt.plot(range(len(history_f)), np.array(list(accumulate(true_values, min))))
-# plt.legend()
-# plt.xlabel('function evaluation in chronological order')
-# plt.ylabel('$f(x)$')
-# plt.show()
+# plot the results 
+plt.rcParams['figure.figsize'] = [10,7]
+plt.scatter(np.repeat(range(len(hist_phix)), customOptions['alg_feval']),\
+    hist_fx.flatten(), c='g', alpha=0.1, label='function evalues')
+plt.scatter(range(len(hist_phix)), hist_phix, marker='o', c='k', alpha=1.0, label='true values')
+# plt.plot(range(len(history_f)), np.array(list(accumulate(true_values, min))))
+plt.legend()
+plt.xlabel('function evaluation in chronological order')
+plt.ylabel('$f(x)$')
+plt.show()
 
 
-# fig, ax = plt.subplots()
-# ## heatmap of the function 
-# lb = [-10, -10]
-# ub = [10,10]
-# x1 = np.linspace(lb[0],ub[0],100)
-# x2 = np.linspace(lb[1],ub[1],100)
-# ### filling the heatmap, value by value
-# fun_map = np.empty((x1.size, x2.size))
-# for i in range(x1.size):
-#     for j in range(x2.size):
-#         fun_map[i,j] = func(np.array([x1[i], x2[j]]))
-# ### plot heatmap
-# im = ax.imshow(
-#     fun_map,
-#     extent=(lb[0], ub[0], lb[1], ub[1]),
-#     origin='lower')
-# fig.colorbar(im)
+fig, ax = plt.subplots()
+## heatmap of the function 
+lb = [-10, -10]
+ub = [10,10]
+x1 = np.linspace(lb[0],ub[0],100)
+x2 = np.linspace(lb[1],ub[1],100)
+### filling the heatmap, value by value
+fun_map = np.empty((len(x2), len(x1)))
+for row in range(len(x2)):
+    for col in range(len(x1)):
+        fun_map[row,col] = func(np.array([x1[col], x2[-row-1]]))
+### plot heatmap
+im = ax.imshow(
+    fun_map,
+    extent=(lb[0], ub[0], lb[1], ub[1]))
+fig.colorbar(im)
 
-# scat = ax.scatter([], [], c='w', alpha=0.4, label='current')
-# scat1 = ax.scatter([], [], c='r', alpha=0.4, label='current')
-# line, = ax.plot([], [], lw=2)
+scat = ax.scatter([], [], c='w', alpha=0.4, label='current')
+scat1 = ax.scatter([], [], c='r', alpha=0.4, label='current')
+line, = ax.plot([], [], lw=2)
 
-# def setup_plot():
-#     """Initial drawing of the scatter plot."""
-#     ax.axis([lb[0], ub[0], lb[1], ub[1]])
-#     scat = ax.scatter([], [], c='w', alpha=0.4, label='current')
-#     scat1 = ax.scatter([], [], c='r', alpha=0.4, label='current')
-#     line.set_data([], [])
+def setup_plot():
+    """Initial drawing of the scatter plot."""
+    ax.axis([lb[0], ub[0], lb[1], ub[1]])
+    scat = ax.scatter([], [], c='w', alpha=0.4, label='current')
+    scat1 = ax.scatter([], [], c='r', alpha=0.4, label='current')
+    line.set_data([], [])
 
-#     # For FuncAnimation's sake, we need to return the artist we'll be using
-#     # Note that it expects a sequence of artists, thus the trailing comma.
-#     return scat, scat1, line, 
+    # For FuncAnimation's sake, we need to return the artist we'll be using
+    # Note that it expects a sequence of artists, thus the trailing comma.
+    return scat, scat1, line, 
 
-# def update(i):
-#     """Update the scatter plot."""
-#     data = np.array(hist_x)[:nAsk*(i+1),:2]
-#     scat.set_offsets(data)
+def update(i):
+    """Update the scatter plot."""
+    data = np.array(hist_x)[:nAsk*(i+1),:2]
+    scat.set_offsets(data)
 
-#     data1 = np.array(hist_x)[nAsk*i:nAsk*(i+1),:2]
-#     scat1.set_offsets(data1)
+    data1 = np.array(hist_x)[nAsk*i:nAsk*(i+1),:2]
+    scat1.set_offsets(data1)
 
-#     if i > 0:
-#         c = hist_center[i]
-#         delta = hist_delta[i]
-#         dataTR = np.array([ [c[0] - delta, c[1] + delta],
-#                             [c[0] + delta, c[1] + delta],
-#                             [c[0] + delta, c[1] - delta],
-#                             [c[0] - delta, c[1] - delta],
-#                             [c[0] - delta, c[1] + delta]
-#         ])
-#         line.set_data(dataTR[:,0], dataTR[:,1])
+    if i > 0:
+        c = hist_center[i]
+        delta = hist_delta[i]
+        dataTR = np.array([ [c[0] - delta, c[1] + delta],
+                            [c[0] + delta, c[1] + delta],
+                            [c[0] + delta, c[1] - delta],
+                            [c[0] - delta, c[1] - delta],
+                            [c[0] - delta, c[1] + delta]
+        ])
+        line.set_data(dataTR[:,0], dataTR[:,1])
 
-#     # We need to return the updated artist for FuncAnimation to draw..
-#     # Note that it expects a sequence of artists, thus the trailing comma.
-#     return scat, scat1, line, 
+    # We need to return the updated artist for FuncAnimation to draw..
+    # Note that it expects a sequence of artists, thus the trailing comma.
+    return scat, scat1, line, 
 
-# ani = animation.FuncAnimation(fig, update, interval=400, frames=16, init_func=setup_plot, blit=True)
-# Writer = animation.writers['ffmpeg']
-# writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
-# ani.save('DFOTR.gif', writer='writer')
-# plt.show()
+ani = animation.FuncAnimation(fig, update, interval=400, frames=16, init_func=setup_plot, blit=True)
+Writer = animation.writers['ffmpeg']
+writer = Writer(fps=15, metadata=dict(artist='Me'), bitrate=1800)
+ani.save('DFOTR.gif', writer='writer')
+plt.show()

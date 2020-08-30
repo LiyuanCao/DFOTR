@@ -66,7 +66,7 @@ class Sample:
         # will render it not poised, pick a point to remove such that 
         # the new sample set is as well poised as possible in the subspace. 
         Phi = np.array([phi(y, model.type['model']) for y in self.Ycentered(model.center)])
-        if np.linalg.matrix_rank(Phi) <= self.m:
+        if np.linalg.matrix_rank(Phi) < self.m:
             Q, R = np.linalg.qr(Phi[:-1].T)
             Phi_subspace = R.T
             phi_xnew = np.dot(Q.T, Phi[-1])
@@ -115,12 +115,14 @@ class Sample:
 
         if (model.type['model'] is 'quadratic') and (self.m < (self.n+1) * (self.n+2) // 2):
             Q, _ = np.linalg.qr(Phi.T, mode='complete')
+            # print('Q = \n')
             # print('\n'.join([' '.join(['{:4.4f}'.format(item) for item in row]) for row in Q]))
 
             model.c, model.g, model.H = alpha2cgH(Q[:,-1])
             xmin, valmin = model.minimize()
             model.c, model.g, model.H = -model.c, -model.g, -model.H
             xmax, valmax = model.minimize()
+            # print(f'valmin = {valmin}, valmax = {-valmax}, model.c = {model.c}')
             if -valmax - model.c > model.c - valmin:
                 return xmax, None
             else:

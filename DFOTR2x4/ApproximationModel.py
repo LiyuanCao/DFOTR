@@ -59,43 +59,56 @@ class ApproximationModel:
         # a = 1
 
         if m < n + 1:
+            ''' minimum norm interpolation '''
             Phi = np.array([phi(y, basis=self.type['model']) for y in samp.Ycentered(self.center)])
             alpha = np.dot(Phi.T, np.linalg.solve(np.dot(Phi, Phi.T), samp.fY))
             if self.type['model'] is 'linear':
                 self.c, self.g = alpha[0], alpha[1:]
             if self.type['model'] is 'quadratic':
                 self.c, self.g, self.H = alpha2cgH(alpha)
-        elif (self.type['model'] is 'quadratic') and (m > n + 1): 
-            # construct the big matrix
-            A = np.empty((1+n+m, 1+n+m))
-            A[:1+n, :1+n] = 0
-            A[0, 1+n:] = 1
-            A[1+n:, 0] = 1
-            A[1:1+n, 1+n:] = Ycentered.T 
-            A[1+n:, 1:1+n] = Ycentered 
-            A[1+n:, 1+n:] = np.dot(Ycentered, Ycentered.T) ** 2 / 2
-
-            # the right-hand side
-            b = np.zeros(1+n+m) 
-            b[-m:] = samp.fY
-
-            # solve the linear system and retrieve the gradient and the hessian 
-            lamda = np.linalg.solve(A, b)
-            self.c = lamda[0]
-            self.g = lamda[1:1+n]
-            self.H = np.dot(Ycentered.T * lamda[-m:], Ycentered)
-
-        elif (self.type['model'] is 'quadratic') and (m == n + 1):
-            # fit an well-determined linear model 
-            self.H[:] = 0
-
-            # solve the linear system
+        elif (m == n + 1) and (self.type['model'] is  'linear'):
+            ''' linear interpolation '''
             A = np.empty((1+n, 1+n))
             A[:,0] = 1
             A[:,1:] = Ycentered
             temp = np.linalg.solve(A, samp.fY)
             self.c = temp[0]
             self.g = temp[1:]
+        elif (self.type['model'] is 'quadratic') and (m >= n + 1) and (m <= (n+1)*(n+2)/2): 
+            try:
+                ''' minimum Frobenius interpolation '''
+                # construct the big matrix
+                A = np.empty((1+n+m, 1+n+m))
+                A[:1+n, :1+n] = 0
+                A[0, 1+n:] = 1
+                A[1+n:, 0] = 1
+                A[1:1+n, 1+n:] = Ycentered.T 
+                A[1+n:, 1:1+n] = Ycentered 
+                A[1+n:, 1+n:] = np.dot(Ycentered, Ycentered.T) ** 2 / 2
+
+                # the right-hand side
+                b = np.zeros(1+n+m) 
+                b[-m:] = samp.fY
+
+                # solve the linear system and retrieve the gradient and the hessian 
+                lamda = np.linalg.solve(A, b)
+                self.c = lamda[0]
+                self.g = lamda[1:1+n]
+                self.H = np.dot(Ycentered.T * lamda[-m:], Ycentered)
+            except np.linalg.LinAlgError as err:
+                if 'Singular matrix' in str(err):
+                    # Use minimum norm interpolation if minimum Frobenius 
+                    # interpolation lead to singularity. 
+                    Phi = np.array([phi(y) for y in samp.Ycentered(self.center)])
+                    alpha = np.dot(Phi.T, np.linalg.solve(np.dot(Phi, Phi.T), samp.fY))
+                    if self.type['model'] is 'linear':
+                        self.c, self.g = alpha[0], alpha[1:]
+                    if self.type['model'] is 'quadratic':
+                        self.c, self.g, self.H = alpha2cgH(alpha)
+                
+                else: 
+                    raise
+
 
     def __call__(self, x):
         x = x - self.center
@@ -134,10 +147,16 @@ class ApproximationModel:
             val = self.c + val
 
         elif self.type['TR'] is 'box':
-            bounds = [(max(self.center[i] - self.delta, self.bounds[i][0]), 
-                      min(self.center[i] + self.delta, self.bounds[i][1]))
-                      for i in range(self.n)]
-            x0 = np.array([np.mean([LB,UB]) for (LB,UB) in bounds])
+            bounds = np.array([[max(self.center[i] - self.delta, self.bounds[i][0]), 
+                      min(self.center[i] + self.delta, self.bounds[i][1])]
+                      for i in range(self.n)])
+                      
+            x0s = (bounds[:,0][:, np.newaxis] + np.random.rand(self.n, 10) * (bounds[:,1] - bounds[:,0])[:, np.newaxis]).T
+            x0s = np.vstack((x0s, np.mean(bounds, axis=1)))
+            mx0s = np.array([self(x) for x in x0s])
+            minidx = mx0s.argmin()
+            x0 = x0s[minidx]
+
             jac = lambda x: self.g + np.sum(self.H * (x - self.center), axis=1)
 
             # result = optimize.minimize(self, x0, 
