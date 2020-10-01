@@ -47,7 +47,7 @@ def trust_sub_CG(H, g, delta):
         else:
             s += alpha * p
             r0 = r
-            r += np.dot(H, p)
+            r += alpha * np.dot(H, p)
 
         if np.linalg.norm(r) < 1e-5:
             break
@@ -55,12 +55,8 @@ def trust_sub_CG(H, g, delta):
             p = -r + sum(r**2) / sum(r0**2) * p
             
     s += alpha * p
-    val = sum(g * s) + np.dot( np.dot(s.reshape(1,n), H), s)
+    val = sum(g * s) + np.dot( np.dot(s.reshape(1,n), H), s) / 2
 
-    if val > 0:
-        s = 2 * np.random.rand(n) - 1
-        s = s / np.linalg.norm(s) * delta
-        val = -1e10
     return (s, val)
 
 def _secular_eqn(lambda_0, eigval, alpha, delta):
