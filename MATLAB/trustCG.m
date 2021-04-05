@@ -46,4 +46,4 @@ for k = 1:n
 end
 
 s = s + alpha*p;
-val = g'*s + s'*H*s;
+val = g'*s + s'*H*s / 2;
