@@ -9,12 +9,14 @@ properties
     c
     g
     H
-    center
-    delta
+    lb
+    ub
+    center % center of the trust region
+    delta % radius of the trust region
 end
 
 methods
-    function self = ApproximationModel(n, options)
+    function self = ApproximationModel(n, lb, ub, options)
         self.n = n;
 
         self.type.model = options.alg_model;
@@ -30,6 +32,10 @@ methods
             self.g = nan(n,1);
             self.H = nan(n);
         end
+        
+        % upper and lower bound for variables
+        self.lb = lb;
+        self.ub = ub;
 
         % preallocate memory for the trust region
         self.center = nan(n,1);
@@ -84,33 +90,69 @@ methods
     end
 
     function [minimizer, decrease] = minimize(self)
+        % Minimize the approximation model. 
+        % Return the minimizer and its function value. 
         if ~isreal(self.g)
             error('The gradient is not all real. ')
         end
 
-        if strcmp(self.type.model, 'linear') || (strcmp(self.type.model, 'quadratic')...
-             && (any(isnan(self.H(:))) || norm(self.H) < 1e-12))
-            s = - self.delta / norm(self.g) * self.g; 
-            val = self.g' * s; 
+        if strcmp(self.type.TR, 'ball')
+            if strcmp(self.type.model, 'linear') || (strcmp(self.type.model, 'quadratic')...
+                 && (any(isnan(self.H(:))) || norm(self.H) < 1e-12))
+                s = - self.delta / norm(self.g) * self.g; 
+                val = self.g' * s; 
 
-        elseif strcmp(self.type.model, 'quadratic') && strcmp(self.type.TRsub, 'exact')
-            [s,val] = trust(self.g, self.H, self.delta);
+            elseif strcmp(self.type.model, 'quadratic') && strcmp(self.type.TRsub, 'exact')
+                [s,val] = trust(self.g, self.H, self.delta);
 
-        elseif strcmp(self.type.model, 'quadratic') && strcmp(self.type.TRsub, 'CG')
-            [s,val] = trustCG(self.g, self.H, self.delta);
+            elseif strcmp(self.type.model, 'quadratic') && strcmp(self.type.TRsub, 'CG')
+                [s,val] = trustCG(self.g, self.H, self.delta);
+
+            else
+                error('Something went wrong!')
+            end
             
-        else
-            error('Something went wrong!')
+        elseif strcmp(self.type.TR, 'box')
+            lb = max(self.lb - self.center, -self.delta * ones(self.n, 1));
+            ub = min(self.ub - self.center, self.delta * ones(self.n, 1));
+            if strcmp(self.type.model, 'linear') || (strcmp(self.type.model, 'quadratic')...
+                 && (any(isnan(self.H(:))) || norm(self.H) < 1e-12))
+            	options = optimoptions(@linprog, ...
+                    'Display', 'off');
+            	[s,val] = linprog(self.g / norm(self.g), [], [], [], [], lb, ub, options); 
+                val = val * norm(self.g);
+                
+            elseif strcmp(self.type.model, 'quadratic')
+                options = optimoptions(@quadprog,...
+                    'Algorithm','trust-region-reflective', ...
+                    'Display', 'off');
+                [s,val] = quadprog(self.H, self.g, [],[],[],[],lb,ub,zeros(self.n,1),options); 
+                
+            else
+                error('Something went wrong!')
+            end
+            
         end
         
         minimizer = self.center + s;
         decrease = -val;
     end
 
-    function update_delta(self, rho, stepSize2delta, options)
+    function update_delta(self, rho, x1, options)
         % Updating iterate and trust-region radius.
+        
+        % Check if the new iterate is on the boundary of the trust region. 
+        if strcmp(self.type.TR, 'ball')
+            on_boundary = norm(x1 - self.center) >= 0.99 * self.delta;
+        elseif strcmp(self.type.TR, 'box')
+            on_boundary = false; 
+            if (norm(x1 - self.center, inf) >= 0.99 * self.delta) ||...
+                    any(x1-self.lb < 1e-10) || any(self.ub-x1 < 1e-10)
+                on_boundary = true;
+            end
+        end
 
-        if rho >= options.tr_toexpand && stepSize2delta >= 0.99
+        if rho >= options.tr_toexpand && on_boundary
             % When the approximation is very good, increase TR radius
             self.delta = self.delta * options.tr_expand;
         elseif (0 <= rho && rho < options.tr_toaccept) || (rho < options.tr_toshrink)

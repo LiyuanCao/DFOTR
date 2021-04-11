@@ -61,8 +61,8 @@ methods
 
         % indeces of the ones that are too far
         toofar = find(distance > options.sample_toremove * model.delta);
-        % We should not delete too many points so that sample size goes under sample_min. 
         % indeces of the farthest ones
+        % We should not delete too many points so that sample size goes under sample_min. 
         [~,farthest] = maxk(distance, max(self.m - options.sample_min,0));
         % indeces of the points to be removed
         if isempty(toofar) && self.m > options.sample_max

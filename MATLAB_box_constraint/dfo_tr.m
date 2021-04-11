@@ -11,18 +11,27 @@ properties
     info % [struct] logger
     samp % [object] sample set 
     model % [object] approximation model 
+    x1
+    predicted_decrease
 end
 
 methods
-    function self = dfo_tr(x0, options)
+    function self = dfo_tr(x0, lb, ub, options)
         % input dimension
         self.n = length(x0);
         
-        % default options
+        % lower and upper bounds
+        if isempty(lb), lb = -inf; end
+        if isempty(ub), ub = inf; end
+        if any(x0<lb) || any(x0>ub)
+            error('lb <= x0 <= ub must hold.')
+        end
+        
+        % set options to default 
         % the algorithm
         self.options.alg_model = 'quadratic'; % the model type
         self.options.alg_TR = 'ball'; % trust region type
-        self.options.alg_TRsub = 'exact'; % trust region subproblem
+        self.options.alg_TRsub = 'exact'; % trust region subproblem when alg_TR = 'ball'
         % sample management parameters
         self.options.sample_initial = self.n + 1; % initial sample size
         self.options.sample_min = ceil((self.n+1) * 1.1); % minimum sample size
@@ -44,7 +53,7 @@ methods
         self.options.verbose = 2; 
         
         % Override default options with custom ones.
-        if nargin > 1 && ~isempty(options)
+        if nargin > 3 && ~isempty(options)
             option_names = fieldnames(options);
             for i = 1:length(option_names)
                 if isfield(self.options, option_names{i})
@@ -63,6 +72,10 @@ methods
             self.options.sample_max = self.n+1; % maximum sample size
         end
         
+        if (any(lb>-inf) || any(ub<inf)) && ~strcmp(self.options.alg_TR, 'box')
+            error('Bound on any variable is only supported when the trust region is box-shaped.')
+        end
+        
         % information/logger
         self.info.start_time = clock;
         self.info.iteration = 0;
@@ -73,7 +86,7 @@ methods
         self.samp = Sample(x0, self.options);
 
         % Initialize model. 
-        self.model = ApproximationModel(self.n, self.options);
+        self.model = ApproximationModel(self.n, lb, ub, self.options);
     end
 
     function o = ask(self)
@@ -115,14 +128,13 @@ methods
                     self.model.delta, self.samp.m)
             end
 
-        else 
+        else
             % Calculate the ratio between the actual reduction in function 
             % value and the reduction predicted the approximation model. 
-            rho = (self.model.c - self.samp.fY(end)) / self.info.predicted_decrease;
+            rho = (self.model.c - self.samp.fY(end)) / self.predicted_decrease;
 
-            % Calculate the ratio between the step size and the trust region radius.
-            stepSize = norm(self.samp.Y(end,:)' - self.model.center);
-            stepSize2delta = stepSize / self.model.delta;
+            % Update the trust region radius. 
+            self.model.update_delta(rho, self.x1, self.options)
 
             % Decide whether to move the iterate. 
             if rho >= self.options.tr_toaccept
@@ -132,9 +144,6 @@ methods
             else
                 success = 0;
             end
-
-            % Update the trust region radius. 
-            self.model.update_delta(rho, stepSize2delta, self.options)
 
             % Remove points that are too far away from the current TR. 
             self.samp.auto_delete(self.model, self.options)
@@ -151,10 +160,11 @@ methods
         self.model.fit(self.samp)
 
         % Solve the trust region subproblem. 
-        [x1, self.info.predicted_decrease] = self.model.minimize();
+        [self.x1, self.predicted_decrease] = self.model.minimize();
 
         % Add the new point to the sample set. 
-        self.samp.addpoint(x1) % the new point
+        todelete = self.samp.addpoint(self.x1, self.model); % the new point
+        self.samp.rmpoint(todelete)
         self.info.iteration = self.info.iteration + 1;
     end
     
@@ -173,7 +183,7 @@ methods
         elseif self.model.delta <= self.options.stop_delta
             STOP = true;
             self.info.exit_message = 'Exiting because the minimum trust region radius is reached.';
-        elseif self.info.predicted_decrease <= self.options.stop_predict
+        elseif self.predicted_decrease <= self.options.stop_predict
             STOP = true;
             self.info.exit_message = 'Exiting because the minimum predicted decrease is reached.';
         end
@@ -183,7 +193,6 @@ methods
         % log the best solution
         [self.info.bestfx, idx] = min(self.samp.fY);
         self.info.bestx = self.samp.Y(idx,:)';
-        self.info = rmfield(self.info, 'predicted_decrease');
         
         if self.options.verbose >= 1
             fprintf('%s\n', self.info.exit_message)
@@ -200,8 +209,8 @@ methods
 end
     
 methods (Static)
-    function [bestx, bestfx, info] = optimize(func, x0, options)
-        optimizer = dfo_tr(x0, options); 
+    function [bestx, bestfx, info] = optimize(func, x0, lb, ub, options)
+        optimizer = dfo_tr(x0, lb, ub, options); 
         
         while true
            x = optimizer.ask();
