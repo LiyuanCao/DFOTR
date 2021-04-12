@@ -68,8 +68,11 @@ methods
         self.fY = [self.fY; nan];
         
         % sample set in the basis
-        Phi = phi(self.Ycentered(model.center), model.type.model);
         phix = phi(x - model.center, model.type.model);
+        Phi = nan(self.m, length(phix));
+        for i = 1:self.m
+            Phi(i,:) = phi(self.Ycentered(model.center, i)', model.type.model);
+        end
         
         if self.m > self.options.sample_max
             l = Phi(1:self.m-1,:)' \ phix';

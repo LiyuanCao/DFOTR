@@ -119,8 +119,13 @@ methods
                  && (any(isnan(self.H(:))) || norm(self.H) < 1e-12))
             	options = optimoptions(@linprog, ...
                     'Display', 'off');
-            	[s,val] = linprog(self.g / norm(self.g), [], [], [], [], lb, ub, options); 
-                val = val * norm(self.g);
+                if norm(self.g) > 0
+                    [s,val] = linprog(self.g / norm(self.g), [], [], [], [], lb, ub, options); 
+                    val = val * norm(self.g);
+                else
+                    s = zeros(self.n,1);
+                    val = 0;
+                end
                 
             elseif strcmp(self.type.model, 'quadratic')
                 options = optimoptions(@quadprog,...
