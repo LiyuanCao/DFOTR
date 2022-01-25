@@ -20,7 +20,7 @@ methods
         self.n = length(x);
 
         % initial sample
-        Y = x + options.tr_delta * eye(self.n);
+        Y = x' + options.tr_delta * eye(self.n);
         self.Y = [Y; x'];
 
         % function value of initial sample
